@@ -1,0 +1,9 @@
+# Exclude development and repository-only files from source archives.
+/.agents export-ignore
+/.agents/** export-ignore
+/AGENTS.md export-ignore
+/.gitignore export-ignore
+/repository_assets export-ignore
+/repository_assets/** export-ignore
+/tests export-ignore
+/tests/** export-ignore
