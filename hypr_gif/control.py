@@ -1,4 +1,4 @@
-"""Local JSON control protocol for a running GIF recorder."""
+"""Local JSON control protocol for the GIF recorder application."""
 
 from __future__ import annotations
 

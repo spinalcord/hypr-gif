@@ -1,4 +1,4 @@
-"""Persistent application settings and extensible settings pages."""
+"""Persistent GIF application settings and extensible settings pages."""
 
 from __future__ import annotations
 

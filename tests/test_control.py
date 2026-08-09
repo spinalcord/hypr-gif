@@ -6,7 +6,7 @@ import time
 import pytest
 from PyQt6.QtWidgets import QApplication
 
-from region_selector.control import (
+from hypr_gif.control import (
     MAX_REQUEST_BYTES,
     ControlActionResult,
     ControlCommand,
@@ -19,7 +19,7 @@ from region_selector.control import (
     parse_request,
     send_control_command,
 )
-from region_selector.recording import RecordingState
+from hypr_gif.recording import RecordingState
 
 
 class FakeControlController:

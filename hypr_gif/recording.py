@@ -11,7 +11,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QObject, QProcess, QTimer, Qt, pyqtSignal
 
-from .geometry import Rect, normalize_rect
+from region_selector.geometry import Rect, normalize_rect
 
 
 class RecordingState(Enum):

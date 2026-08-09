@@ -434,8 +434,10 @@ def _configure_window_commands(
             f"prop = '{prop}', value = '{value}', {window} }})"
         )
 
+    # FIX: Keep every selection window together across workspace changes.
     return (
         f"dispatch hl.dsp.window.float({{ action = 'enable', {window} }})",
+        f"dispatch hl.dsp.window.pin({{ action = 'enable', {window} }})",
         set_prop("opaque", "1"),
         set_prop("opacity", "1"),
         set_prop("opacity_override", "1"),

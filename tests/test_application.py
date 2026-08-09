@@ -3,10 +3,10 @@ from PyQt6.QtGui import QColor, QImage
 from PyQt6.QtWidgets import QApplication
 
 from region_selector import Rect, SelectionInteractionMode
-from region_selector.application import GifRecorderController
-from region_selector.editing import DraftState, GifFrameMetadata
-from region_selector.recording import RecordingState
-from region_selector.settings import RecordingSettingsStore
+from hypr_gif.application import GifRecorderController
+from hypr_gif.editing import DraftState, GifFrameMetadata
+from hypr_gif.recording import RecordingState
+from hypr_gif.settings import RecordingSettingsStore
 
 
 def configure_output(settings: QSettings, tmp_path) -> None:

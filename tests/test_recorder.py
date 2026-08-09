@@ -2,7 +2,7 @@ import json
 from types import SimpleNamespace
 
 import recorder
-from region_selector.control import ControlCommand, ControlErrorCode
+from hypr_gif.control import ControlCommand, ControlErrorCode
 
 
 def test_missing_system_dependencies_returns_all_required_in_stable_order() -> None:

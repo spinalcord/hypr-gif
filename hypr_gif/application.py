@@ -19,9 +19,10 @@ from .control import (
 )
 from .editing import DraftState, GifAnalyzer, GifDraft, GifExporter
 from .editor import GifEditorDialog
-from .geometry import Rect
+from region_selector.geometry import Rect
+from region_selector.selector import RegionSelector, SelectionInteractionMode
+
 from .recording import GifRecorder, RecordingOptions, RecordingState
-from .selector import RegionSelector, SelectionInteractionMode
 from .settings import (
     CompressionSettingsPage,
     RecordingSettingsPage,

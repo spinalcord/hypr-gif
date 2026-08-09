@@ -11,15 +11,15 @@ from enum import Enum
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication
 
-from region_selector.application import GifRecorderController
-from region_selector.control import (
+from hypr_gif.application import GifRecorderController
+from hypr_gif.control import (
     ControlCommand,
     ControlErrorCode,
     ControlServerError,
     GifRecorderControlServer,
     send_control_command,
 )
-from region_selector.settings import RecordingSettingsStore
+from hypr_gif.settings import RecordingSettingsStore
 
 
 class SystemDependency(str, Enum):

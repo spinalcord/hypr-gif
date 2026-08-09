@@ -1,4 +1,4 @@
-"""GIF draft analysis, temporal editing state, and final export."""
+"""GIF application draft analysis, editing state, and final export."""
 
 from __future__ import annotations
 

@@ -44,6 +44,7 @@ commands only contact an already-running server and do not perform this check.
 - Recording: locks the region, cancel, and settings
 - Paused: can be moved but not resized; marching ants become visible again
 - Full-screen selection: one handle to collapse and expand the toolbar
+- Workspace changes: dots, marching ants, and toolbar follow together
 
 After stopping, the recording has not yet been published. The toolbar only
 shows “Save”, “Edit”, and “Discard”. “Save” creates the final file, “Edit”
@@ -130,6 +131,11 @@ bind = SUPER SHIFT, C, exec, python /path/to/Wayland-Gif-Recorder/recorder.py ca
 ```
 
 ## Recording architecture
+
+The reusable selection component lives in the `region_selector` package. The
+application-specific controller, control API, recording, editing, editor, and
+settings modules live in the separate `hypr_gif` package. Dependencies point
+from `hypr_gif` to `region_selector`, never in the opposite direction.
 
 - `FrameSource`: provides frames; the Wayland implementation is `GrimFrameSource`
 - `FrameEncoder`: processes frames; the GIF implementation is `FfmpegGifEncoder`

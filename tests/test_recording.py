@@ -7,7 +7,7 @@ from PyQt6.QtGui import QColor, QImage, QImageReader
 from PyQt6.QtWidgets import QApplication
 
 from region_selector import Rect
-from region_selector.recording import (
+from hypr_gif.recording import (
     CompressionPreset,
     FrameEncoder,
     FrameSource,

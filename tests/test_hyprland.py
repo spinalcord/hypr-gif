@@ -191,6 +191,11 @@ def test_configure_and_move_use_single_lua_batches() -> None:
     assert runner.calls[0][:2] == ("hyprctl", "--batch")
     config_batch = runner.calls[0][2]
     assert config_batch.count("hl.dsp.window.float") == 4
+    for address in addresses.values():
+        assert config_batch.count(
+            "hl.dsp.window.pin({ action = 'enable', "
+            f"window = 'address:{address}' }})"
+        ) == 1
     assert config_batch.count("prop = 'rounding', value = '12'") == 4
     assert config_batch.count("prop = 'border_size', value = '0'") == 4
     assert config_batch.count("hl.dsp.window.resize") == 4
@@ -223,6 +228,11 @@ def test_selection_windows_are_configured_and_updated_in_single_batches() -> Non
 
     config_batch = runner.calls[0][2]
     assert config_batch.count("hl.dsp.window.float") == 8
+    for address in addresses.values():
+        assert config_batch.count(
+            "hl.dsp.window.pin({ action = 'enable', "
+            f"window = 'address:{address}' }})"
+        ) == 1
     assert config_batch.count("prop = 'rounding', value = '12'") == 4
     assert config_batch.count("prop = 'rounding', value = '0'") == 4
     assert config_batch.count("hl.dsp.window.resize") == 8
@@ -261,6 +271,11 @@ def test_toolbar_is_configured_and_updated_with_the_other_eight_windows() -> Non
 
     config_batch = runner.calls[0][2]
     assert config_batch.count("hl.dsp.window.float") == 9
+    for address in addresses.values():
+        assert config_batch.count(
+            "hl.dsp.window.pin({ action = 'enable', "
+            f"window = 'address:{address}' }})"
+        ) == 1
     assert "address:0x9" in config_batch
     update_batch = runner.calls[1][2]
     assert update_batch.count("hl.dsp.window.resize") == 5

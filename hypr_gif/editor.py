@@ -1,4 +1,4 @@
-"""Mouse-operated dialog for temporal GIF frame editing."""
+"""Mouse-operated dialog for GIF application frame editing."""
 
 from __future__ import annotations
 

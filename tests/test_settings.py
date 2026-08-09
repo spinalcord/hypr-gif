@@ -4,8 +4,8 @@ import pytest
 from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QApplication
 
-from region_selector.recording import CompressionPreset, RecordingOptions
-from region_selector.settings import (
+from hypr_gif.recording import CompressionPreset, RecordingOptions
+from hypr_gif.settings import (
     CompressionSettingsPage,
     RecordingPreferences,
     RecordingSettingsPage,

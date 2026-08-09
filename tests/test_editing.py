@@ -5,7 +5,7 @@ import shutil
 import pytest
 from PyQt6.QtGui import QColor, QImage
 
-from region_selector.editing import (
+from hypr_gif.editing import (
     GifDraft,
     GifEditModel,
     GifFrameMetadata,
@@ -14,7 +14,7 @@ from region_selector.editing import (
     ffmpeg_edit_arguments,
     gifsicle_delete_arguments,
 )
-from region_selector.recording import RecordingOptions
+from hypr_gif.recording import RecordingOptions
 
 
 ANIMATED_GIF = base64.b64decode(
@@ -125,14 +125,14 @@ def test_ffmpeg_fallback_uses_recording_options_and_frame_selection(tmp_path) ->
 
 def test_failed_cut_export_keeps_draft_for_retry(tmp_path, monkeypatch) -> None:
     draft = _draft(tmp_path, {1})
-    monkeypatch.setattr("region_selector.editing.shutil.which", lambda _name: "/bin/tool")
+    monkeypatch.setattr("hypr_gif.editing.shutil.which", lambda _name: "/bin/tool")
 
     class FailedResult:
         returncode = 1
         stderr = b"broken export"
 
     monkeypatch.setattr(
-        "region_selector.editing.subprocess.run",
+        "hypr_gif.editing.subprocess.run",
         lambda *_args, **_kwargs: FailedResult(),
     )
 
@@ -178,7 +178,7 @@ def test_ffmpeg_fallback_exports_only_kept_frames(tmp_path, monkeypatch) -> None
 
     executable_lookup = shutil.which
     monkeypatch.setattr(
-        "region_selector.editing.shutil.which",
+        "hypr_gif.editing.shutil.which",
         lambda name: None if name == "missing-gifsicle" else executable_lookup(name),
     )
 

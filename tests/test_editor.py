@@ -6,9 +6,9 @@ from PyQt6.QtGui import QColor, QImage
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication, QDialog
 
-from region_selector.editing import GifDraft, GifFrameMetadata
-from region_selector.editor import GifEditorDialog
-from region_selector.recording import RecordingOptions
+from hypr_gif.editing import GifDraft, GifFrameMetadata
+from hypr_gif.editor import GifEditorDialog
+from hypr_gif.recording import RecordingOptions
 
 
 @pytest.fixture(scope="module")
