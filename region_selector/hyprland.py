@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 import stat
 import subprocess
@@ -226,6 +227,10 @@ def _safe_address(address: str) -> bool:
     return all(character in "0123456789abcdefABCDEF" for character in address[2:])
 
 
+def _safe_monitor_name(name: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z0-9_.:-]+", name))
+
+
 Runner = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]
 
 
@@ -322,6 +327,7 @@ class HyprlandIPC:
         dot_size: int,
         edges: Mapping[str, Rect],
         toolbar_geometry: Rect | None = None,
+        monitor: str | None = None,
     ) -> None:
         commands: list[str] = []
         for role in CORNER_ROLES:
@@ -332,11 +338,14 @@ class HyprlandIPC:
                     addresses[role],
                     Rect(x, y, dot_size, dot_size),
                     dot_size // 2,
+                    monitor,
                 )
             )
         for role in EDGE_ROLES:
             commands.extend(
-                _configure_window_commands(role, addresses[role], edges[role], 0)
+                _configure_window_commands(
+                    role, addresses[role], edges[role], 0, monitor
+                )
             )
         toolbar_geometry = toolbar_geometry or edges.get(TOOLBAR_ROLE)
         if toolbar_geometry is not None:
@@ -346,6 +355,7 @@ class HyprlandIPC:
                     addresses[TOOLBAR_ROLE],
                     toolbar_geometry,
                     0,
+                    monitor,
                 )
             )
         self._batch(commands)
@@ -373,8 +383,11 @@ class HyprlandIPC:
         positions: Mapping[str, tuple[int, int]],
         edges: Mapping[str, Rect],
         toolbar_geometry: Rect | None = None,
+        monitor: str | None = None,
     ) -> None:
         commands: list[str] = []
+        if monitor is not None:
+            commands.extend(_move_windows_to_monitor(addresses, monitor))
         for role in CORNER_ROLES:
             address = addresses[role]
             if not _safe_address(address):
@@ -423,10 +436,19 @@ def _configure_window_commands(
     address: str,
     geometry: Rect,
     rounding: int,
+    monitor: str | None = None,
 ) -> tuple[str, ...]:
     if not _safe_address(address):
         raise HyprlandError(f"unsafe Hyprland address for {role!r}")
     window = f"window = 'address:{address}'"
+    monitor_command: tuple[str, ...] = ()
+    if monitor is not None:
+        if not _safe_monitor_name(monitor):
+            raise HyprlandError("invalid or missing target monitor name")
+        monitor_command = (
+            "dispatch hl.dsp.window.move({ "
+            f"monitor = '{monitor}', follow = false, {window} }})",
+        )
 
     def set_prop(prop: str, value: str) -> str:
         return (
@@ -437,6 +459,7 @@ def _configure_window_commands(
     # FIX: Keep every selection window together across workspace changes.
     return (
         f"dispatch hl.dsp.window.float({{ action = 'enable', {window} }})",
+        *monitor_command,
         f"dispatch hl.dsp.window.pin({{ action = 'enable', {window} }})",
         set_prop("opaque", "1"),
         set_prop("opacity", "1"),
@@ -450,6 +473,30 @@ def _configure_window_commands(
         f"x = {geometry.width}, y = {geometry.height}, {window} }})",
         "dispatch hl.dsp.window.move({ "
         f"x = {geometry.x}, y = {geometry.y}, {window} }})",
+    )
+
+
+def _move_windows_to_monitor(
+    addresses: Mapping[str, str], monitor: str
+) -> tuple[str, ...]:
+    if not _safe_monitor_name(monitor):
+        raise HyprlandError("invalid or missing target monitor name")
+    windows: list[str] = []
+    for role in (*CORNER_ROLES, *EDGE_ROLES, TOOLBAR_ROLE):
+        address = addresses.get(role)
+        if not isinstance(address, str) or not _safe_address(address):
+            raise HyprlandError(f"unsafe Hyprland address for {role!r}")
+        windows.append(f"window = 'address:{address}'")
+    return tuple(
+        f"dispatch hl.dsp.window.pin({{ action = 'disable', {window} }})"
+        for window in windows
+    ) + tuple(
+        "dispatch hl.dsp.window.move({ "
+        f"monitor = '{monitor}', follow = false, {window} }})"
+        for window in windows
+    ) + tuple(
+        f"dispatch hl.dsp.window.pin({{ action = 'enable', {window} }})"
+        for window in windows
     )
 
 

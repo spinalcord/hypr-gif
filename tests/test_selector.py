@@ -36,7 +36,13 @@ class FakeHyprland:
         return {role: f"0x{index + 1}" for index, role in enumerate(titles)}
 
     def configure_selection_windows(
-        self, addresses, positions, dot_size, edges, toolbar_geometry=None
+        self,
+        addresses,
+        positions,
+        dot_size,
+        edges,
+        toolbar_geometry=None,
+        monitor=None,
     ):
         self.configured.append(
             (
@@ -45,14 +51,15 @@ class FakeHyprland:
                 dot_size,
                 dict(edges),
                 toolbar_geometry,
+                monitor,
             )
         )
 
     def update_selection_windows(
-        self, addresses, positions, edges, toolbar_geometry=None
+        self, addresses, positions, edges, toolbar_geometry=None, monitor=None
     ):
         self.moves.append(
-            (dict(addresses), dict(positions), dict(edges), toolbar_geometry)
+            (dict(addresses), dict(positions), dict(edges), toolbar_geometry, monitor)
         )
 
     def capture_geometry(self, addresses):
@@ -91,6 +98,7 @@ def test_start_resize_and_confirm_emit_public_signals(app) -> None:
     assert changed == [Rect(200, 200, 300, 200)]
     assert len(hyprland.configured) == 1
     assert len(hyprland.configured[0][0]) == 9
+    assert hyprland.configured[0][5] == "focused"
     assert hyprland.configured[0][1] == {
         "tl": (176, 176),
         "tr": (500, 176),
@@ -119,6 +127,7 @@ def test_start_resize_and_confirm_emit_public_signals(app) -> None:
     assert selector.geometry == Rect(476, 150, 24, 250)
     assert changed[-1] == selector.geometry
     assert len(hyprland.moves) == 1
+    assert hyprland.moves[0][4] is None
     assert hyprland.moves[0][1] == {
         "tl": (452, 126),
         "tr": (500, 126),
@@ -151,9 +160,13 @@ def test_move_drag_switches_monitor_and_preserves_size(app) -> None:
     assert selector.geometry == Rect(1000, 100, 300, 200)
     assert changes[-1] == selector.geometry
     assert len(hyprland.moves) == 1
+    assert hyprland.moves[0][4] == "second"
     toolbar_geometry = selector._window_group.toolbar_placement.geometry
     assert 1000 <= toolbar_geometry.x < toolbar_geometry.right <= 1800
     assert 0 <= toolbar_geometry.y < toolbar_geometry.bottom <= 600
+
+    selector._window_group.move(selector.geometry, hyprland.monitors()[1])
+    assert hyprland.moves[-1][4] is None
     selector.cancel()
 
 
@@ -430,6 +443,7 @@ def test_marching_ants_visibility_unmaps_and_restores_edge_windows(app) -> None:
         for window in selector._window_group.border_windows.values()
     )
     assert len(hyprland.configured) == 2
+    assert hyprland.configured[1][5] == "focused"
     selector.close()
 
 

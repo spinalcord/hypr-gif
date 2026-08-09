@@ -44,7 +44,8 @@ commands only contact an already-running server and do not perform this check.
 - Recording: locks the region, cancel, and settings
 - Paused: can be moved but not resized; marching ants become visible again
 - Full-screen selection: one handle to collapse and expand the toolbar
-- Workspace changes: dots, marching ants, and toolbar follow together
+- Workspace changes: the pinned selection stays together on its recorder monitor;
+  workspace changes on other monitors do not affect it
 
 After stopping, the recording has not yet been published. The toolbar only
 shows “Save”, “Edit”, and “Discard”. “Save” creates the final file, “Edit”

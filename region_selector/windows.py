@@ -548,7 +548,9 @@ class SelectionWindowGroup(QObject):
         for role, window in self._border_windows.items():
             window.resize_to_geometry(edges[role.value])
         self._update_selection_windows(
-            dot_positions(geometry, self._dot_size), edges
+            dot_positions(geometry, self._dot_size),
+            edges,
+            monitor.name if monitor != self._monitor else None,
         )
         self._geometry = geometry
         self._monitor = monitor
@@ -644,6 +646,7 @@ class SelectionWindowGroup(QObject):
                     addresses,
                     dot_positions(self._geometry, self._dot_size),
                     edge_geometries(self._geometry, self._ants_width),
+                    self._monitor.name if self._monitor is not None else "",
                 )
             except HyprlandError as exc:
                 failure = exc
@@ -694,6 +697,7 @@ class SelectionWindowGroup(QObject):
                 addresses,
                 dot_positions(self._geometry, self._dot_size),
                 edge_geometries(self._geometry, self._ants_width),
+                self._monitor.name if self._monitor is not None else "",
             )
         except HyprlandError as exc:
             self._fail(str(exc))
@@ -834,9 +838,20 @@ class SelectionWindowGroup(QObject):
         addresses: Mapping[str, str],
         positions: Mapping[str, tuple[int, int]],
         edges: Mapping[str, Rect],
+        monitor: str,
     ) -> None:
         callback = self._hyprland.configure_selection_windows
         toolbar_geometry = self._toolbar_placement.geometry
+        if _accepts_positional_argument(callback, 6):
+            callback(
+                addresses,
+                positions,
+                self._dot_size,
+                edges,
+                toolbar_geometry,
+                monitor,
+            )
+            return
         if _accepts_positional_argument(callback, 5):
             callback(addresses, positions, self._dot_size, edges, toolbar_geometry)
             return
@@ -851,9 +866,19 @@ class SelectionWindowGroup(QObject):
         self,
         positions: Mapping[str, tuple[int, int]],
         edges: Mapping[str, Rect],
+        monitor: str | None = None,
     ) -> None:
         callback = self._hyprland.update_selection_windows
         toolbar_geometry = self._toolbar_placement.geometry
+        if _accepts_positional_argument(callback, 5):
+            callback(
+                self._addresses,
+                positions,
+                edges,
+                toolbar_geometry,
+                monitor,
+            )
+            return
         if _accepts_positional_argument(callback, 4):
             callback(self._addresses, positions, edges, toolbar_geometry)
             return

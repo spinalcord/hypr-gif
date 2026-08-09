@@ -223,12 +223,27 @@ def test_selection_windows_are_configured_and_updated_in_single_batches() -> Non
         "left": Rect(9, 20, 2, 80),
     }
 
-    ipc.configure_selection_windows(addresses, positions, 24, edges)
+    ipc.configure_selection_windows(addresses, positions, 24, edges, monitor="DP-1")
     ipc.update_selection_windows(addresses, positions, edges)
 
     config_batch = runner.calls[0][2]
     assert config_batch.count("hl.dsp.window.float") == 8
+    assert config_batch.count("monitor = 'DP-1', follow = false") == 8
     for address in addresses.values():
+        float_command = (
+            "hl.dsp.window.float({ action = 'enable', "
+            f"window = 'address:{address}' }})"
+        )
+        monitor_command = (
+            "hl.dsp.window.move({ monitor = 'DP-1', follow = false, "
+            f"window = 'address:{address}' }})"
+        )
+        pin_command = (
+            "hl.dsp.window.pin({ action = 'enable', "
+            f"window = 'address:{address}' }})"
+        )
+        assert config_batch.index(float_command) < config_batch.index(monitor_command)
+        assert config_batch.index(monitor_command) < config_batch.index(pin_command)
         assert config_batch.count(
             "hl.dsp.window.pin({ action = 'enable', "
             f"window = 'address:{address}' }})"
@@ -265,12 +280,13 @@ def test_toolbar_is_configured_and_updated_with_the_other_eight_windows() -> Non
     toolbar_geometry = Rect(20, 110, 180, 40)
 
     ipc.configure_selection_windows(
-        addresses, positions, 24, edges, toolbar_geometry
+        addresses, positions, 24, edges, toolbar_geometry, "HDMI-A-1"
     )
     ipc.update_selection_windows(addresses, positions, edges, toolbar_geometry)
 
     config_batch = runner.calls[0][2]
     assert config_batch.count("hl.dsp.window.float") == 9
+    assert config_batch.count("monitor = 'HDMI-A-1', follow = false") == 9
     for address in addresses.values():
         assert config_batch.count(
             "hl.dsp.window.pin({ action = 'enable', "
@@ -281,6 +297,64 @@ def test_toolbar_is_configured_and_updated_with_the_other_eight_windows() -> Non
     assert update_batch.count("hl.dsp.window.resize") == 5
     assert update_batch.count("hl.dsp.window.move") == 9
     assert "address:0x9" in update_batch
+
+
+def test_monitor_change_reassigns_all_windows_before_geometry_updates() -> None:
+    runner = FakeRunner([(0, "ok\n" * 41, "")])
+    ipc = HyprlandIPC(runner)
+    addresses = {
+        "tl": "0x1",
+        "tr": "0x2",
+        "bl": "0x3",
+        "br": "0x4",
+        "top": "0x5",
+        "right": "0x6",
+        "bottom": "0x7",
+        "left": "0x8",
+        "toolbar": "0x9",
+    }
+    positions = {"tl": (1, 2), "tr": (3, 4), "bl": (5, 6), "br": (7, 8)}
+    edges = {
+        role: Rect(10, 10, 20, 2)
+        for role in ("top", "right", "bottom", "left")
+    }
+
+    ipc.update_selection_windows(
+        addresses, positions, edges, Rect(20, 30, 100, 40), "DP-2"
+    )
+
+    batch = runner.calls[0][2]
+    assert batch.count("action = 'disable'") == 9
+    assert batch.count("monitor = 'DP-2', follow = false") == 9
+    assert batch.count("action = 'enable'") == 9
+    commands = batch.split(";")
+    assert all("action = 'disable'" in command for command in commands[:9])
+    assert all("monitor = 'DP-2'" in command for command in commands[9:18])
+    assert all("action = 'enable'" in command for command in commands[18:27])
+    assert "x = 1, y = 2" in commands[27]
+
+
+@pytest.mark.parametrize("monitor", ("", "DP-1';bad"))
+def test_invalid_target_monitor_is_rejected(monitor: str) -> None:
+    addresses = {
+        "tl": "0x1",
+        "tr": "0x2",
+        "bl": "0x3",
+        "br": "0x4",
+        "top": "0x5",
+        "right": "0x6",
+        "bottom": "0x7",
+        "left": "0x8",
+    }
+    positions = {"tl": (0, 0), "tr": (1, 0), "bl": (0, 1), "br": (1, 1)}
+    edges = {
+        role: Rect(0, 0, 2, 2)
+        for role in ("top", "right", "bottom", "left")
+    }
+    with pytest.raises(HyprlandError, match="target monitor"):
+        HyprlandIPC(FakeRunner([])).configure_selection_windows(
+            addresses, positions, 24, edges, monitor=monitor
+        )
 
 
 def test_batch_rejection_is_readable() -> None:
