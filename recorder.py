@@ -20,6 +20,7 @@ from hypr_gif.control import (
     send_control_command,
 )
 from hypr_gif.settings import RecordingSettingsStore
+from hypr_gif.theme import apply_dracula_theme
 
 
 class SystemDependency(str, Enum):
@@ -91,6 +92,7 @@ def run_application(
         return 1
 
     app = QApplication(arguments)
+    apply_dracula_theme(app)
 
     controller = GifRecorderController(app)
     try:

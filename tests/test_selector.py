@@ -447,6 +447,113 @@ def test_marching_ants_visibility_unmaps_and_restores_edge_windows(app) -> None:
     selector.close()
 
 
+def test_overlay_visibility_unmaps_and_restores_all_windows(app) -> None:
+    hyprland = FakeHyprland()
+    selector = RegionSelector(
+        initial_rect=Rect(100, 100, 300, 200),
+        auto_close_on_confirm=False,
+        hyprland=hyprland,
+        cursor_socket=FakeCursor(),
+    )
+    selector.start()
+    toolbar = selector._window_group.toolbar_window
+    geometry = selector.geometry
+    selector.set_interaction_mode(SelectionInteractionMode.MOVE_ONLY)
+    selector.set_confirm_enabled(False)
+
+    assert toolbar is not None
+    assert selector.set_overlay_visible(False) is True
+    assert selector._window_group._animation_timer.isActive() is False
+    assert all(
+        not window.isVisible()
+        for window in selector._window_group.windows.values()
+    )
+    assert all(
+        not window.isVisible()
+        for window in selector._window_group.border_windows.values()
+    )
+    assert toolbar.isVisible() is False
+
+    assert selector.set_overlay_visible(True) is True
+    assert selector._window_group._animation_timer.isActive() is True
+    assert all(
+        window.isVisible() for window in selector._window_group.windows.values()
+    )
+    assert all(
+        window.isVisible()
+        for window in selector._window_group.border_windows.values()
+    )
+    assert toolbar.isVisible() is True
+    assert selector.geometry == geometry
+    assert selector._interaction_mode is SelectionInteractionMode.MOVE_ONLY
+    assert toolbar.confirm_action.isEnabled() is False
+    assert len(hyprland.configured) == 2
+    selector.close()
+
+
+def test_overlay_restore_preserves_hidden_marching_ants(app) -> None:
+    selector = RegionSelector(
+        initial_rect=Rect(100, 100, 300, 200),
+        auto_close_on_confirm=False,
+        hyprland=FakeHyprland(),
+        cursor_socket=FakeCursor(),
+    )
+    selector.start()
+
+    assert selector.set_overlay_visible(False) is True
+    assert selector.set_marching_ants_visible(False) is True
+    assert selector.set_overlay_visible(True) is True
+    assert selector._window_group._animation_timer.isActive() is False
+    assert all(
+        not window.isVisible()
+        for window in selector._window_group.border_windows.values()
+    )
+    assert all(
+        window.isVisible() for window in selector._window_group.windows.values()
+    )
+    assert selector._window_group.toolbar_window.isVisible() is True
+    selector.close()
+
+
+def test_overlay_visibility_restore_failure_is_reported(app) -> None:
+    class FailingVisibilityHyprland(FakeHyprland):
+        def configure_selection_windows(
+            self, addresses, positions, dot_size, edges, toolbar_geometry=None
+        ):
+            if self.configured:
+                raise HyprlandError("overlay restore failed")
+            super().configure_selection_windows(
+                addresses, positions, dot_size, edges, toolbar_geometry
+            )
+
+    selector = RegionSelector(
+        initial_rect=Rect(100, 100, 300, 200),
+        auto_close_on_confirm=False,
+        hyprland=FailingVisibilityHyprland(),
+        cursor_socket=FakeCursor(),
+    )
+    errors = []
+    selector.error.connect(errors.append)
+    selector.start()
+
+    assert selector.set_overlay_visible(False) is True
+    assert selector.set_overlay_visible(True) is False
+    assert errors == [
+        "selection overlay windows were not restored within 2 seconds: "
+        "overlay restore failed"
+    ]
+    assert all(
+        not window.isVisible()
+        for window in selector._window_group.windows.values()
+    )
+    assert all(
+        not window.isVisible()
+        for window in selector._window_group.border_windows.values()
+    )
+    assert selector._window_group.toolbar_window.isVisible() is False
+    selector.close()
+
+
 def test_marching_ants_visibility_failure_is_reported(app) -> None:
     class FailingVisibilityHyprland(FakeHyprland):
         def configure_selection_windows(

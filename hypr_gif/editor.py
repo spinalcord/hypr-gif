@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .editing import GifDraft, GifEditModel
+from .theme import DraculaColor
 
 
 class TimelineDragMode(Enum):
@@ -61,7 +62,10 @@ class PreviewLabel(QLabel):
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding,
         )
-        self.setStyleSheet("background: #171717; color: #dddddd;")
+        self.setStyleSheet(
+            f"background: {DraculaColor.BACKGROUND.value}; "
+            f"color: {DraculaColor.FOREGROUND.value};"
+        )
 
     def set_image(self, image) -> None:
         self._image = image
@@ -140,21 +144,21 @@ class GifTimeline(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         track = self._track_rect()
-        painter.fillRect(track, QColor("#353535"))
+        painter.fillRect(track, QColor(DraculaColor.SELECTION.value))
         frame_width = track.width() / self._model.frame_count
         for index in range(self._model.frame_count):
             left = track.left() + round(index * frame_width)
             right = track.left() + round((index + 1) * frame_width)
             color = (
-                QColor("#a53b3b")
+                QColor(DraculaColor.RED.value)
                 if self._model.is_discarded(index)
-                else QColor("#5d8b62")
+                else QColor(DraculaColor.GREEN.value)
             )
             painter.fillRect(
                 QRect(left, track.top(), max(1, right - left), track.height()),
                 color,
             )
-        painter.setPen(QPen(QColor("#e0a030"), 3))
+        painter.setPen(QPen(QColor(DraculaColor.YELLOW.value), 3))
         start_x = self._x_for_index(self._range_start)
         end_x = self._x_for_index(self._range_end)
         painter.drawRect(
@@ -165,11 +169,11 @@ class GifTimeline(QWidget):
                 track.height() + 12,
             )
         )
-        painter.setPen(QPen(QColor("#f4c15d"), 7))
+        painter.setPen(QPen(QColor(DraculaColor.ORANGE.value), 7))
         painter.drawLine(start_x, track.top() - 10, start_x, track.bottom() + 10)
         painter.drawLine(end_x, track.top() - 10, end_x, track.bottom() + 10)
         playhead_x = self._x_for_frame_center(self._playhead)
-        painter.setPen(QPen(QColor("#54a7ff"), 3))
+        painter.setPen(QPen(QColor(DraculaColor.CYAN.value), 3))
         painter.drawLine(playhead_x, 3, playhead_x, self.height() - 3)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802

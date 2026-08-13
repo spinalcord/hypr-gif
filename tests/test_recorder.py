@@ -108,6 +108,11 @@ def test_application_starts_when_dependencies_are_available(monkeypatch) -> None
     monkeypatch.setattr(recorder, "QApplication", FakeApplication)
     monkeypatch.setattr(recorder, "GifRecorderController", FakeController)
     monkeypatch.setattr(recorder, "GifRecorderControlServer", FakeServer)
+    monkeypatch.setattr(
+        recorder,
+        "apply_dracula_theme",
+        lambda app: events.append(("theme", app)),
+    )
 
     result = recorder.run_application(
         ["recorder.py"],
@@ -117,6 +122,7 @@ def test_application_starts_when_dependencies_are_available(monkeypatch) -> None
     assert result == 23
     assert [event[0] for event in events if event[0] != "connect"] == [
         "application",
+        "theme",
         "controller",
         "server",
         "server-start",

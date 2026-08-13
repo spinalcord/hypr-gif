@@ -179,6 +179,14 @@ class RegionSelector(QObject):
             return False
         return True
 
+    def set_overlay_visible(self, visible: bool) -> bool:
+        try:
+            self._window_group.set_overlay_visible(visible)
+        except HyprlandError as exc:
+            self.error.emit(str(exc))
+            return False
+        return True
+
     def resolve_capture_geometry(self) -> Rect | None:
         """Return the capture area confirmed by the compositor."""
 

@@ -446,6 +446,7 @@ class SelectionWindowGroup(QObject):
         self._animation_timer.timeout.connect(self._advance_animation)
         self._animation_phase = 0
         self._ants_visible = True
+        self._overlay_visible = True
 
     @property
     def windows(self) -> Mapping[CornerRole, DotWindow]:
@@ -522,6 +523,7 @@ class SelectionWindowGroup(QObject):
         self._discovery_attempts = 0
         self._animation_phase = 0
         self._ants_visible = True
+        self._overlay_visible = True
         for window in self._border_windows.values():
             window.show()
         for window in self._windows.values():
@@ -577,6 +579,7 @@ class SelectionWindowGroup(QObject):
         self._monitor = None
         self._fullscreen = False
         self._ants_visible = True
+        self._overlay_visible = True
         self._addresses.clear()
         self._titles.clear()
 
@@ -610,14 +613,74 @@ class SelectionWindowGroup(QObject):
                 window.hide()
             self._ants_visible = False
             return
-        self._restore_selection_edges()
+        if self._overlay_visible:
+            self._restore_selection_edges()
+            self._ants_visible = True
+            self._animation_timer.start()
+            return
         self._ants_visible = True
-        self._animation_timer.start()
+
+    def set_overlay_visible(self, visible: bool) -> None:
+        if not self._active:
+            raise HyprlandError("selection windows are not ready")
+        if visible == self._overlay_visible:
+            return
+        if not visible:
+            self._animation_timer.stop()
+            for window in self._windows.values():
+                window.hide()
+            for window in self._border_windows.values():
+                window.hide()
+            if self._toolbar_window is not None:
+                self._toolbar_window.hide()
+            self._overlay_visible = False
+            return
+
+        self._restore_selection_overlay()
+        self._overlay_visible = True
+        if self._ants_visible:
+            self._animation_timer.start()
+
+    def _restore_selection_overlay(self) -> None:
+        for window in self._windows.values():
+            window.show()
+        for window in self._border_windows.values():
+            window.show()
+        if self._toolbar_window is not None:
+            self._toolbar_window.show()
+
+        failure = self._rediscover_selection_windows()
+        if failure is None:
+            if not self._ants_visible:
+                for window in self._border_windows.values():
+                    window.hide()
+            return
+        for window in self._windows.values():
+            window.hide()
+        for window in self._border_windows.values():
+            window.hide()
+        if self._toolbar_window is not None:
+            self._toolbar_window.hide()
+        raise HyprlandError(
+            "selection overlay windows were not restored within 2 seconds: "
+            f"{failure}"
+        )
 
     def _restore_selection_edges(self) -> None:
         for window in self._border_windows.values():
             window.show()
 
+        failure = self._rediscover_selection_windows()
+        if failure is None:
+            return
+        for window in self._border_windows.values():
+            window.hide()
+        raise HyprlandError(
+            "selection edge windows were not restored within 2 seconds: "
+            f"{failure}"
+        )
+
+    def _rediscover_selection_windows(self) -> HyprlandError | None:
         loop = QEventLoop(self)
         timer = QTimer(loop)
         timer.setInterval(25)
@@ -666,13 +729,8 @@ class SelectionWindowGroup(QObject):
         if not finished:
             loop.exec()
         if restored:
-            return
-        for window in self._border_windows.values():
-            window.hide()
-        raise HyprlandError(
-            "selection edge windows were not restored within 2 seconds: "
-            f"{failure}"
-        )
+            return None
+        return failure or HyprlandError("selection windows were not found")
 
     def resolve_capture_geometry(self) -> Rect:
         if not self._active:
@@ -823,7 +881,7 @@ class SelectionWindowGroup(QObject):
         if toolbar is None or monitor is None:
             return
         self._layout_toolbar(self._geometry, monitor, DragMode.MOVE, None)
-        if not self._active:
+        if not self._active or not self._overlay_visible:
             return
         try:
             self._update_selection_windows(

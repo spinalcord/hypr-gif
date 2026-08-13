@@ -1,12 +1,13 @@
 from PyQt6.QtCore import QObject, QSettings, pyqtSignal
 from PyQt6.QtGui import QColor, QImage
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QDialog
 
 from region_selector import Rect, SelectionInteractionMode
 from hypr_gif.application import GifRecorderController
 from hypr_gif.editing import DraftState, GifFrameMetadata
 from hypr_gif.recording import RecordingState
 from hypr_gif.settings import RecordingSettingsStore
+from hypr_gif.theme import DraculaColor
 
 
 def configure_output(settings: QSettings, tmp_path) -> None:
@@ -30,7 +31,9 @@ class FakeSelector(QObject):
         self.capture_geometry = Rect(12, 22, 296, 196)
         self.resolve_calls = 0
         self.ants_visible_calls = []
+        self.overlay_visible_calls = []
         self.ants_visibility_result = True
+        self.overlay_visibility_result = True
         self.events = []
         self.start_calls = 0
         self.close_calls = 0
@@ -57,6 +60,10 @@ class FakeSelector(QObject):
         self.ants_visible_calls.append(visible)
         self.events.append(("ants", visible))
         return self.ants_visibility_result
+
+    def set_overlay_visible(self, visible) -> bool:
+        self.overlay_visible_calls.append(visible)
+        return self.overlay_visibility_result
 
     def resolve_capture_geometry(self):
         self.resolve_calls += 1
@@ -155,6 +162,91 @@ class ImmediateExporter(QObject):
 
     def stop(self) -> None:
         pass
+
+
+def test_controller_uses_dracula_pink_for_its_selector(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    settings = QSettings(
+        str(tmp_path / "settings.ini"),
+        QSettings.Format.IniFormat,
+    )
+    selector = FakeSelector()
+    selector_arguments = {}
+
+    def create_selector(**arguments):
+        selector_arguments.update(arguments)
+        return selector
+
+    monkeypatch.setattr("hypr_gif.application.RegionSelector", create_selector)
+    controller = GifRecorderController(
+        app,
+        settings_store=RecordingSettingsStore(settings),
+    )
+
+    assert selector_arguments["dot_color"] == DraculaColor.PINK.value
+    controller.close()
+
+
+def test_settings_dialog_hides_and_restores_selector_overlay(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    settings = QSettings(
+        str(tmp_path / "settings.ini"),
+        QSettings.Format.IniFormat,
+    )
+    selector = FakeSelector()
+    controller = GifRecorderController(
+        app,
+        settings_store=RecordingSettingsStore(settings),
+        selector=selector,
+    )
+    selector.geometry_changed.emit(selector.geometry)
+
+    controller.settings_dialog.open()
+    app.processEvents()
+
+    assert selector.overlay_visible_calls[-1] is False
+
+    controller.settings_dialog.reject()
+    app.processEvents()
+
+    assert selector.overlay_visible_calls[-1] is True
+    controller.close()
+
+
+def test_nested_dialogs_keep_selector_overlay_hidden(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    settings = QSettings(
+        str(tmp_path / "settings.ini"),
+        QSettings.Format.IniFormat,
+    )
+    selector = FakeSelector()
+    controller = GifRecorderController(
+        app,
+        settings_store=RecordingSettingsStore(settings),
+        selector=selector,
+    )
+    selector.geometry_changed.emit(selector.geometry)
+    first_dialog = QDialog()
+    second_dialog = QDialog()
+
+    first_dialog.show()
+    second_dialog.show()
+    app.processEvents()
+    first_dialog.hide()
+    app.processEvents()
+
+    assert selector.overlay_visible_calls[-1] is False
+
+    second_dialog.hide()
+    app.processEvents()
+
+    assert selector.overlay_visible_calls[-1] is True
+    first_dialog.deleteLater()
+    second_dialog.deleteLater()
+    controller.close()
 
 
 def test_controller_turns_record_action_into_draft_actions(tmp_path) -> None:

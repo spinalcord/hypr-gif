@@ -178,12 +178,14 @@ selector.start()
 selector.set_interaction_mode(SelectionInteractionMode.MOVE_ONLY)
 selector.set_interaction_enabled(True)
 selector.set_marching_ants_visible(False)
+selector.set_overlay_visible(False)
 capture_geometry = selector.resolve_capture_geometry()
 ```
 
 - Requirement: an existing `QApplication` before `start()`
 - `geometry`: normalized rectangle in global logical Hyprland coordinates
 - `resolve_capture_geometry()`: compositor-confirmed inner rectangle or `None`
+- `set_overlay_visible()`: hides or restores the complete selection overlay
 - Feedback: the Qt signals `geometry_changed`, `confirmed`, `cancelled`, and `error`
 - `ants_width` and `ants_interval_ms`: positive values
 - `toolbar_gap`: non-negative distance between selection and toolbar

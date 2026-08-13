@@ -7,9 +7,9 @@ import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QEvent, QObject, pyqtSignal
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QApplication, QFileDialog, QStyle
+from PyQt6.QtWidgets import QApplication, QDialog, QFileDialog, QStyle
 
 from .control import (
     ControlActionResult,
@@ -29,6 +29,7 @@ from .settings import (
     RecordingSettingsStore,
     SettingsDialog,
 )
+from .theme import DraculaColor
 
 
 EditorFactory = Callable[[GifDraft], GifEditorDialog]
@@ -73,6 +74,7 @@ class GifRecorderController(QObject):
         self._editor_dialog: GifEditorDialog | None = None
         self._closing = False
         self._discard_recording_on_finish = False
+        self._visible_dialogs: set[QDialog] = set()
 
         style = app.style()
         self.settings_action = QAction(
@@ -104,6 +106,7 @@ class GifRecorderController(QObject):
         self.discard_action.setVisible(False)
 
         self._selector = selector or RegionSelector(
+            dot_color=DraculaColor.PINK.value,
             toolbar_actions=(
                 self.pause_action,
                 self.settings_action,
@@ -139,6 +142,7 @@ class GifRecorderController(QObject):
         self._analyzer.error.connect(self._analysis_failed)
         self._exporter.finished.connect(self._export_finished)
         self._exporter.error.connect(self._export_failed)
+        self._app.installEventFilter(self)
 
     @property
     def selector(self) -> RegionSelector:
@@ -171,6 +175,8 @@ class GifRecorderController(QObject):
 
     def close(self) -> None:
         self._closing = True
+        self._app.removeEventFilter(self)
+        self._visible_dialogs.clear()
         if self._recorder.state is not RecordingState.IDLE:
             if isinstance(self._recorder, GifRecorder):
                 self._recorder.abort()
@@ -186,6 +192,16 @@ class GifRecorderController(QObject):
         self._selector.close()
         self._selection_active = False
         self._selection_ready_for_recording = False
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+        if isinstance(watched, QDialog):
+            if event.type() is QEvent.Type.Show:
+                self._visible_dialogs.add(watched)
+                self._sync_dialog_overlay_visibility()
+            elif event.type() is QEvent.Type.Hide:
+                self._visible_dialogs.discard(watched)
+                self._sync_dialog_overlay_visibility()
+        return super().eventFilter(watched, event)
 
     def record(self) -> ControlActionResult:
         if self._draft_state is not DraftState.NONE or self._draft is not None:
@@ -395,6 +411,7 @@ class GifRecorderController(QObject):
     def _selection_ready(self, _geometry: Rect) -> None:
         self._selection_active = True
         self._selection_ready_for_recording = True
+        self._sync_dialog_overlay_visibility()
         if (
             self._recorder.state is RecordingState.IDLE
             and self._draft_state is DraftState.NONE
@@ -524,6 +541,16 @@ class GifRecorderController(QObject):
         self._selection_active = False
         self._selection_ready_for_recording = False
         self.cancelled.emit()
+
+    def _sync_dialog_overlay_visibility(self) -> None:
+        if (
+            self._closing
+            or not self._selection_active
+            or not self._selection_ready_for_recording
+        ):
+            return
+        # FIX: Hide the capture overlay while application dialogs are open.
+        self._selector.set_overlay_visible(not self._visible_dialogs)
 
     def _editor_closed(self, _result: int) -> None:
         self._editor_dialog = None
