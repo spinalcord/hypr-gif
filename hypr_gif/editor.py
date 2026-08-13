@@ -283,6 +283,7 @@ class GifEditorDialog(QDialog):
         self.scrubber = MouseScrubber(Qt.Orientation.Horizontal, self)
         self.scrubber.setRange(0, draft.frame_count - 1)
         self.scrubber.setObjectName("frameScrubber")
+        self.scrubber.setHidden(True)
 
         self.timeline = GifTimeline(self.model, self)
         self.timeline.setObjectName("gifTimeline")

@@ -54,9 +54,9 @@ ending the session. A new recording attempt is rejected while a draft exists.
 
 ## Frame editor
 ![](repository_assets/editor_ui.png)  
-The scalable editor provides a large preview, play/pause, frame-by-frame
-navigation, and a scrubber. In the timeline, the blue playhead and the two
-yellow segment handles can be dragged entirely with the mouse. “Discard frame”
+The scalable editor provides a large preview, play/pause, and frame-by-frame
+navigation. In the timeline, the blue playhead and the two yellow segment
+handles can be dragged entirely with the mouse. “Discard frame”
 affects the current frame; “Discard segment” affects the selected range,
 including both boundaries. Actions accumulate and can be changed through Undo,
 Redo, and Reset. Frames marked in red are discarded.

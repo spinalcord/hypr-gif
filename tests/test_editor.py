@@ -79,6 +79,15 @@ def test_editor_disables_apply_when_every_frame_is_discarded(tmp_path, editor_ap
     dialog.reject()
 
 
+def test_editor_hides_redundant_frame_scrubber(tmp_path, editor_app) -> None:
+    dialog = GifEditorDialog(make_draft(tmp_path))
+    dialog.show()
+
+    assert dialog.scrubber.isHidden() is True
+    assert dialog.timeline.isVisible() is True
+    dialog.reject()
+
+
 def test_timeline_mouse_click_moves_playhead(tmp_path, editor_app) -> None:
     dialog = GifEditorDialog(make_draft(tmp_path))
     dialog.show()
@@ -91,4 +100,24 @@ def test_timeline_mouse_click_moves_playhead(tmp_path, editor_app) -> None:
     )
 
     assert dialog.current_frame in (1, 2)
+    drag_position = QPoint(timeline.width() * 3 // 4, timeline.height() // 2)
+    QTest.mousePress(
+        timeline,
+        Qt.MouseButton.LeftButton,
+        pos=QPoint(timeline.width() // 2, timeline.height() // 2),
+    )
+    QTest.mouseMove(timeline, drag_position)
+    QTest.mouseRelease(
+        timeline,
+        Qt.MouseButton.LeftButton,
+        pos=drag_position,
+    )
+
+    assert dialog.current_frame == 2
+    assert timeline.playhead == 2
+    assert dialog.scrubber.value() == 2
+    preview = dialog.preview_label.pixmap().toImage()
+    assert preview.pixelColor(preview.width() // 2, preview.height() // 2) == QColor(
+        "blue"
+    )
     dialog.reject()
